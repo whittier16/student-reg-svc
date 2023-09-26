@@ -86,12 +86,13 @@ func (s *Service) LoggerMiddleware() func(http.Handler) http.Handler {
 	}
 }
 
-func (s *Service) AuthMiddlware() func(http.Handler) http.Handler {
+// AuthMiddleware authorizes requests using valid JWT token from the header
+func (s *Service) AuthMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/healthz" ||
 				r.URL.Path == "/auth" {
-				// Call the next handler don't log if it is internal request from health check of Kubernetes
+				// Call the next handler don't log if it is internal request from health check and auth
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -108,7 +109,7 @@ func (s *Service) AuthMiddlware() func(http.Handler) http.Handler {
 					if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 						return nil, fmt.Errorf("there was an error")
 					}
-					return sampleSecretKey, nil
+					return []byte(s.cfg.JWT.Secret), nil
 				})
 
 				if err != nil {

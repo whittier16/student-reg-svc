@@ -11,8 +11,6 @@ import (
 	"time"
 )
 
-var sampleSecretKey = []byte("SecretYouShouldHide")
-
 // respondWithError response error to user
 func (s *Service) respondWithError(w http.ResponseWriter, message string, status int) {
 	s.response(w, map[string]string{"message": message}, status)
@@ -68,7 +66,7 @@ func (s *Service) generateJWT() (string, error) {
 	claims["client"] = "client"
 	claims["exp"] = time.Now().Add(time.Minute * 30).Unix()
 
-	tokenString, err := token.SignedString(sampleSecretKey)
+	tokenString, err := token.SignedString([]byte(s.cfg.JWT.Secret))
 	if err != nil {
 		fmt.Errorf("Something Went Wrong: %s", err.Error())
 		return "", err

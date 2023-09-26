@@ -3,13 +3,16 @@ package handlers
 import (
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
+	"github.com/whittier16/student-reg-svc/internal/app/config"
 	"github.com/whittier16/student-reg-svc/internal/pkg/database/cache"
 	"github.com/whittier16/student-reg-svc/internal/pkg/database/db"
 	"net/http"
 )
 
-func RegisterRoutes(r *mux.Router, log *logrus.Logger, db *db.MySQL, c *cache.Redis) {
-	h := New(log, db)
+// RegisterRoutes register the different handlers' route definitions.
+func RegisterRoutes(r *mux.Router, log *logrus.Logger, db *db.MySQL, c *cache.Redis, cfg *config.MainConfig) {
+	h := New(log, db, cfg)
+
 	// adding logger middleware
 	r = addMiddlewares(r, h)
 	r.HandleFunc("/healthz", h.Health())
@@ -24,6 +27,6 @@ func RegisterRoutes(r *mux.Router, log *logrus.Logger, db *db.MySQL, c *cache.Re
 
 func addMiddlewares(r *mux.Router, h *Service) *mux.Router {
 	r.Use(h.LoggerMiddleware())
-	r.Use(h.AuthMiddlware())
+	r.Use(h.AuthMiddleware())
 	return r
 }

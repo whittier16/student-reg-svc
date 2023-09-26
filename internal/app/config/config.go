@@ -11,12 +11,20 @@ type MainConfig struct {
 	Database DatabaseConfig
 	Server   ServerConfig
 	Redis    CacheConfig
+	JWT      JWTConfig
 	Log      log.FieldLogger
 }
 
 type ServerConfig struct {
 	Address int
 	RunMode string
+}
+
+type JWTConfig struct {
+	Secret                     string
+	RefreshSecret              string
+	AccessTokenExpireDuration  int
+	refreshTokenExpireDuration int
 }
 
 type DatabaseConfig struct {

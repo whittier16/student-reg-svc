@@ -50,7 +50,7 @@ func New() (*Server, error) {
 
 	// creates a new instance of a mux router
 	router := mux.NewRouter().StrictSlash(true)
-	handlers.RegisterRoutes(router, log, db, c)
+	handlers.RegisterRoutes(router, log, db, c, cnf)
 
 	s := &Server{
 		logger: log,

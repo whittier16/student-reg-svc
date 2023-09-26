@@ -21,3 +21,4 @@
 /hotel-backend
 .idea/
 .env
+.editorconfig

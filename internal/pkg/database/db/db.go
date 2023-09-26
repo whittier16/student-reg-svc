@@ -27,7 +27,6 @@ func New(user string, pass string, host string, port string, DBName string) (*My
 		port,
 		DBName,
 	)
-	log.Println(connection)
 	dbClient, err := sql.Open(`mysql`, connection)
 	if err != nil {
 		fmt.Println("Error occured: ", err)

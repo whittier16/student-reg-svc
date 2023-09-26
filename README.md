@@ -128,11 +128,18 @@ curl --location --request POST 'localhost:5005/auth'
 <p>
 
 ```
-Success response status: HTTP 204
+HTTP/1.1 204 No Content
+Content-Type: application/json
+Token: <TOKEN>
+Vary: Origin
+Date: Tue, 26 Sep 2023 11:55:04 GMT
 ```
 
 </p>
 </details>
+
+> **_NOTE:_** Copy the value of the `Token` header from the response headers for the rest API endpoints 
+when executing API requests
 
 #### `POST /api/commonstudents`
 
@@ -159,3 +166,8 @@ curl --location 'localhost:5005/api/commonstudents?teacher=teacher1%40gmail.com&
 
 </p>
 </details>
+ 
+- You can also download the [collection file](docs%2FStudent Registration Service.postman_collection.json) from this repo, then import directly into Postman.
+
+### TODO
+- 

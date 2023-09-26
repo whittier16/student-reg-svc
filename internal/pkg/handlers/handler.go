@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
+	"github.com/whittier16/student-reg-svc/internal/app/config"
 	"github.com/whittier16/student-reg-svc/internal/app/repository"
 	"github.com/whittier16/student-reg-svc/internal/pkg/database/db"
 	"github.com/whittier16/student-reg-svc/internal/pkg/services"
@@ -13,9 +14,10 @@ type Service struct {
 	logger *logrus.Logger
 	router *mux.Router
 	svc    services.Service
+	cfg    *config.MainConfig
 }
 
-func New(lg *logrus.Logger, db *db.MySQL) *Service {
+func New(lg *logrus.Logger, db *db.MySQL, cfg *config.MainConfig) *Service {
 	return &Service{
 		logger: lg,
 		svc: services.NewService(
@@ -23,6 +25,7 @@ func New(lg *logrus.Logger, db *db.MySQL) *Service {
 			repository.NewTeacherRepository(db),
 			repository.NewRegisterRepository(db),
 		),
+		cfg: cfg,
 	}
 }
 
