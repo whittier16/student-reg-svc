@@ -39,7 +39,7 @@ vet:
 	go vet ${BUILDFLAGS} ./test/...
 
 startdb:
-	docker-compose -p ${NAME}-dbonly -f test/docker/docker-compose.yml --log-level ERROR up -d
+	docker-compose -p ${NAME}-dbonly -f test/docker/docker-compose.yml up -d
 
 stopdb:
 	docker-compose -p ${NAME}-dbonly -f test/docker/docker-compose.yml down

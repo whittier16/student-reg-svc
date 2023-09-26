@@ -90,6 +90,8 @@ func LoadConfig(filename string, fileType string) (*viper.Viper, error) {
 func getConfigPath(env string) string {
 	if env == "docker" {
 		return "/app/config/config-docker"
+	} else if env == "test" {
+		return "configs/config-test"
 	} else {
 		return "configs/config-development"
 	}
