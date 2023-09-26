@@ -167,7 +167,8 @@ curl --location 'localhost:5005/api/commonstudents?teacher=teacher1%40gmail.com&
 </p>
 </details>
  
-> **NOTE:** You can also download the [collection file](docs%2FStudent Registration Service.postman_collection.json) from this repo, then import directly into Postman.
+> **NOTE:** You can also download the [Postman collection file]("docs%2FStudent Registration Service.postman_collection.json") from this repo, then import directly into Postman.
+
 
 ### TODO
 - Deploy your API to any publicly accessible hosting environment
