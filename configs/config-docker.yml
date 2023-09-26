@@ -1,0 +1,15 @@
+server:
+  address: 5005
+database:
+  host: "docker.for.mac.localhost"
+  port: "3306"
+  dbName: "stdnt_reg"
+  user: "root"
+  pass: "mauFJcuf5dhRMQrjj"
+cors:
+  allowOrigins: "*"
+jwt:
+  secret: "mySecretKey"
+  refreshSecret: "mySecretKey"
+  accessTokenExpireDuration: 1440
+  refreshTokenExpireDuration: 60
