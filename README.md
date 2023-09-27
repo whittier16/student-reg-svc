@@ -165,7 +165,7 @@ Date: Tue, 26 Sep 2023 11:55:04 GMT
 > **NOTE:** Copy the value of the `Token` header from the response headers for the rest API endpoints 
 when executing API requests
 
-#### `POST /api/commonstudents`
+#### `GET /api/commonstudents`
 
 ##### Sample request
 
