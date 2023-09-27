@@ -38,6 +38,25 @@ APP_ENV=development|test|docker
 
 3. Replace the values in `configs/config-*.yml` as needed
 
+##### sample config
+```yaml
+server:
+  address: 5005
+database:
+  host: "docker.for.mac.localhost"
+  port: "3306"
+  dbName: "stdnt_reg"
+  user: "testuser"
+  pass: "testpass"
+cors:
+  allowOrigins: "*"
+jwt:
+  secret: "testSecret"
+  refreshSecret: "testSecret"
+  accessTokenExpireDuration: 1440
+  refreshTokenExpireDuration: 60
+
+```
 
 4. Create a database
 ```
