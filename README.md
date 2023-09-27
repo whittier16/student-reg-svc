@@ -31,8 +31,13 @@ cd student-reg-svc
 ```
 cp .env-template .env
 ```
+##### sample env
+```
+APP_ENV=development|test|docker
+```
 
 3. Replace the values in `configs/config-*.yml` as needed
+
 
 4. Create a database
 ```
