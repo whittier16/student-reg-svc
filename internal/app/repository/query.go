@@ -62,19 +62,12 @@ const (
 		ORDER BY
 			title
 `
-	updatePostQuery = `
+	updateRegisterQuery = `
 	UPDATE
 		register
 	SET
 		suspended_on = NOW()
 	WHERE
 		student_id = ?
-`
-
-	deletePostByID = `
-	DELETE FROM
-		post
-	WHERE
-		id = ?
 `
 )

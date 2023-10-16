@@ -1,15 +1,15 @@
 server:
   address: 5005
 database:
-  host: "localhost"
+  host: "127.0.0.1"
   port: "3306"
   dbName: "stdnt_reg"
   user: "root"
-  pass: ""
+  pass: "mauFJcuf5dhRMQrjj"
 cors:
   allowOrigins: "*"
 jwt:
-  secret: ""
-  refreshSecret: ""
+  secret: "mySecretKey"
+  refreshSecret: "mySecretKey"
   accessTokenExpireDuration: 1440
   refreshTokenExpireDuration: 60

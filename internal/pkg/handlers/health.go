@@ -4,8 +4,9 @@ import (
 	"net/http"
 )
 
-func (s *Service) Health() http.HandlerFunc {
+// Health checks the up status of the server
+func (h *Handler) Health() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		s.response(w, "OK", http.StatusOK)
+		h.response(w, "OK", http.StatusOK)
 	}
 }

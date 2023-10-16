@@ -15,10 +15,12 @@ type StudentRepository struct {
 	DB *sql.DB
 }
 
+// NewStudentRepository an instance of the StudentRepository.
 func NewStudentRepository(db *db.MySQL) StudentRepository {
 	return StudentRepository{DB: db.DBClient}
 }
 
+// Create sets the email and name in a new db record
 func (sr *StudentRepository) Create(ctx context.Context, input *models.Student) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "studentRepository.Create")
 	defer span.Finish()
@@ -35,6 +37,7 @@ func (sr *StudentRepository) Create(ctx context.Context, input *models.Student) 
 	return nil
 }
 
+// FindByEmail retrieves the student with the given email
 func (sr *StudentRepository) FindByEmail(ctx context.Context, email string) (resp models.Student, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "StudentRepository.FindByEmail")
 	defer span.Finish()
@@ -54,17 +57,17 @@ func (sr *StudentRepository) FindByEmail(ctx context.Context, email string) (res
 	return resp, nil
 }
 
+// FindByEmailArr retrieves the emails with the given list of emails
 func (sr *StudentRepository) FindByEmailArr(ctx context.Context, emails []string, isSuspended bool) (resp []string, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "StudentRepository.FindByEmailArr")
 	defer span.Finish()
 
-	valueStrings := []string{}
+	var valueStrings []string
 	for _, email := range emails {
 		valueStrings = append(valueStrings, fmt.Sprintf("'%s'", email))
 	}
 
-	getQuery := `SELECT email FROM student JOIN register ON student.email = register.student_id
-             WHERE student.email in (%s)%s`
+	getQuery := "SELECT email FROM student JOIN register ON student.email = register.student_id WHERE student.email in (%s)%s"
 	suspendedQry := ""
 	if !isSuspended {
 		suspendedQry = ` AND register.suspended_on IS NULL`
@@ -76,7 +79,13 @@ func (sr *StudentRepository) FindByEmailArr(ctx context.Context, emails []string
 		log.Println("[Student][FindByEmailArr][Repository] Problem to querying to db, err: ", err.Error())
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Println("[Student][FindByEmailArr][Repository] Problem to querying to db, err: ", err.Error())
+			return
+		}
+	}(rows)
 
 	// studentEmails slice to hold data from returned rows.
 	var studentEmails []string

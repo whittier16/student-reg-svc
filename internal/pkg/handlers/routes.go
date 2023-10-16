@@ -9,12 +9,13 @@ import (
 	"net/http"
 )
 
-// RegisterRoutes register the different handlers' route definitions.
+// RegisterRoutes registers the different handlers' route definitions.
 func RegisterRoutes(r *mux.Router, log *logrus.Logger, db *db.MySQL, c *cache.Redis, cfg *config.MainConfig) {
 	h := New(log, db, cfg)
 
-	// adding logger middleware
+	// adding middlewares
 	r = addMiddlewares(r, h)
+
 	r.HandleFunc("/healthz", h.Health())
 	r.HandleFunc("/auth", h.Auth())
 	r.HandleFunc("/api/register", h.Register()).Methods(http.MethodPost)
@@ -25,7 +26,9 @@ func RegisterRoutes(r *mux.Router, log *logrus.Logger, db *db.MySQL, c *cache.Re
 	r.HandleFunc("/api/teachers", h.CreateTeacher()).Methods(http.MethodPost)
 }
 
-func addMiddlewares(r *mux.Router, h *Service) *mux.Router {
+// addMiddlewares adds the necessary middlewares that is essential before/after the handler to be executed
+func addMiddlewares(r *mux.Router, h *Handler) *mux.Router {
+	r.Use(h.CORSMiddleware())
 	r.Use(h.LoggerMiddleware())
 	r.Use(h.AuthMiddleware())
 	return r

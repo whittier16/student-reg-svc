@@ -13,10 +13,12 @@ type TeacherRepository struct {
 	DB *sql.DB
 }
 
+// NewTeacherRepository an instance of the NewTeacherRepository.
 func NewTeacherRepository(db *db.MySQL) TeacherRepository {
 	return TeacherRepository{DB: db.DBClient}
 }
 
+// FindByEmail retrieves the teacher with the given email
 func (tr *TeacherRepository) FindByEmail(ctx context.Context, email string) (resp models.Teacher, err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "TeacherRepository.FindByEmail")
 	defer span.Finish()
@@ -36,6 +38,7 @@ func (tr *TeacherRepository) FindByEmail(ctx context.Context, email string) (res
 	return resp, nil
 }
 
+// Create sets the teacher email and name in a new db record
 func (tr *TeacherRepository) Create(ctx context.Context, input *models.Teacher) (err error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "TeacherRepository.Create")
 	defer span.Finish()

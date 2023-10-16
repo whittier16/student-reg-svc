@@ -1,10 +1,10 @@
 package models
 
 type User struct {
-	email        string
-	username     string
-	passwordhash string
-	fullname     string
-	createDate   string
-	role         int
+	Email        string
+	Username     string
+	Passwordhash string
+	Fullname     string
+	CreateDate   string
+	Role         int
 }

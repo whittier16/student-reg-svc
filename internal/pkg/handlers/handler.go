@@ -10,16 +10,18 @@ import (
 	"net/http"
 )
 
-type Service struct {
+// Handler handles API requests
+type Handler struct {
 	logger *logrus.Logger
 	router *mux.Router
 	svc    services.Service
 	cfg    *config.MainConfig
 }
 
-func New(lg *logrus.Logger, db *db.MySQL, cfg *config.MainConfig) *Service {
-	return &Service{
-		logger: lg,
+// New returns a new instance of the Handler
+func New(log *logrus.Logger, db *db.MySQL, cfg *config.MainConfig) *Handler {
+	return &Handler{
+		logger: log,
 		svc: services.NewService(
 			repository.NewStudentRepository(db),
 			repository.NewTeacherRepository(db),
@@ -29,23 +31,39 @@ func New(lg *logrus.Logger, db *db.MySQL, cfg *config.MainConfig) *Service {
 	}
 }
 
-func (s *Service) Auth() http.HandlerFunc {
+// Auth handles "POST /auth"
+// Generates a new token.
+// ---
+// Responses:
+//
+//	204:
+//	401:
+func (h *Handler) Auth() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		token, err := s.generateJWT()
+		token, err := h.generateJWT()
 		if err != nil {
-			s.respondWithError(w, err.Error(), http.StatusBadRequest)
+			h.respondWithError(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
 		w.Header().Set("Token", token)
 		w.Header().Set("Content-Type", "application/json")
 
-		s.response(w, "", http.StatusNoContent)
+		h.response(w, "", http.StatusNoContent)
 	}
 }
 
-func (s *Service) Register() http.HandlerFunc {
+// Register handles "POST /api/register"
+// Registers one or more students to a specified teacher.
+// ---
+// Responses:
+//
+//	204:
+//	400:
+//	401:
+//	422:
+func (h *Handler) Register() http.HandlerFunc {
 	type request struct {
 		TeacherEmail  string   `json:"teacher"`
 		StudentEmails []string `json:"students"`
@@ -55,26 +73,35 @@ func (s *Service) Register() http.HandlerFunc {
 		req := request{}
 		// Try to decode the request body into the struct. If there is an error,
 		// respond to the client with the error message and a 400 status code.
-		err := s.decode(r, &req)
+		err := h.decode(r, &req)
 		if err != nil {
-			s.respondWithError(w, err.Error(), http.StatusBadRequest)
+			h.respondWithError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		err = s.svc.Register(r.Context(), services.RegisterStudentsParams{
+		err = h.svc.Register(r.Context(), services.RegisterStudentsParams{
 			TeacherEmail:  req.TeacherEmail,
 			StudentEmails: req.StudentEmails,
 		})
 		if err != nil {
-			s.respondWithError(w, err.Error(), http.StatusBadRequest)
+			h.respondWithError(w, err.Error(), http.StatusUnprocessableEntity)
 			return
 		}
 
-		s.response(w, "", http.StatusNoContent)
+		h.response(w, "", http.StatusNoContent)
 	}
 }
 
-func (s *Service) GetCommonStudents() http.HandlerFunc {
+// GetCommonStudents handles "GET /api/commonstudents"
+// Gets list of common students to a given list of teachers.
+// ---
+// Responses:
+//
+//	200:
+//	400:
+//	401:
+//	422:
+func (h *Handler) GetCommonStudents() http.HandlerFunc {
 	type response struct {
 		Students []string `json:"students"`
 	}
@@ -82,29 +109,37 @@ func (s *Service) GetCommonStudents() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tq := r.URL.Query()["teacher"]
 		if len(tq) == 0 {
-			s.respondWithError(w, "missing required query params", http.StatusBadRequest)
+			h.respondWithError(w, "missing required query params", http.StatusUnprocessableEntity)
 			return
 		}
 
-		emails := []string{}
+		var emails []string
 		for _, e := range tq {
 			emails = append(emails, e)
 		}
-		res, err := s.svc.GetCommonStudents(r.Context(), services.GetCommonStudentsParams{
+		res, err := h.svc.GetCommonStudents(r.Context(), services.GetCommonStudentsParams{
 			Teacher: emails,
 		})
 		if err != nil {
-			s.respondWithError(w, err.Error(), http.StatusBadRequest)
+			h.respondWithError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		s.response(w, response{
+		h.response(w, response{
 			Students: res,
 		}, http.StatusOK)
 	}
 }
 
-func (s *Service) Suspend() http.HandlerFunc {
+// Suspend handles "GET /api/suspend"
+// Suspends a student.
+// ---
+// Responses:
+//
+//	204:
+//	400:
+//	401:
+func (h *Handler) Suspend() http.HandlerFunc {
 	type request struct {
 		Student string `json:"student"`
 	}
@@ -112,25 +147,33 @@ func (s *Service) Suspend() http.HandlerFunc {
 		req := request{}
 		// Try to decode the request body into the struct. If there is an error,
 		// respond to the client with the error message and a 400 status code.
-		err := s.decode(r, &req)
+		err := h.decode(r, &req)
 		if err != nil {
-			s.respondWithError(w, err.Error(), http.StatusBadRequest)
+			h.respondWithError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		err = s.svc.Suspend(r.Context(), services.SuspendStudentsParams{
+		err = h.svc.Suspend(r.Context(), services.SuspendStudentsParams{
 			Student: req.Student,
 		})
 		if err != nil {
-			s.respondWithError(w, err.Error(), http.StatusBadRequest)
+			h.respondWithError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		s.response(w, "", http.StatusNoContent)
+		h.response(w, "", http.StatusNoContent)
 	}
 }
 
-func (s *Service) RetrieveNotifications() http.HandlerFunc {
+// RetrieveNotifications handles "GET /api/retrievenotifications"
+// Retrieves list of students who can receive a given notification.
+// ---
+// Responses:
+//
+//	200:
+//	400:
+//	401:
+func (h *Handler) RetrieveNotifications() http.HandlerFunc {
 	type request struct {
 		Teacher      string `json:"teacher"`
 		Notification string `json:"notification"`
@@ -142,28 +185,36 @@ func (s *Service) RetrieveNotifications() http.HandlerFunc {
 		req := request{}
 		// Try to decode the request body into the struct. If there is an error,
 		// respond to the client with the error message and a 400 status code.
-		err := s.decode(r, &req)
+		err := h.decode(r, &req)
 		if err != nil {
-			s.respondWithError(w, err.Error(), http.StatusBadRequest)
+			h.respondWithError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		res, err := s.svc.SendNotifications(r.Context(), services.SendNotificationsParams{
+		res, err := h.svc.SendNotifications(r.Context(), services.SendNotificationsParams{
 			Teacher:       req.Teacher,
 			Notifications: req.Notification,
 		})
 		if err != nil {
-			s.respondWithError(w, err.Error(), http.StatusBadRequest)
+			h.respondWithError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		s.response(w, response{
+		h.response(w, response{
 			Recipients: res,
 		}, http.StatusOK)
 	}
 }
 
-func (s *Service) CreateStudent() http.HandlerFunc {
+// CreateStudent handles "GET /api/student"
+// Adds a student.
+// ---
+// Responses:
+//
+//	204:
+//	400:
+//	401:
+func (h *Handler) CreateStudent() http.HandlerFunc {
 	type request struct {
 		Email string `json:"email"`
 		Name  string `json:"name"`
@@ -173,26 +224,34 @@ func (s *Service) CreateStudent() http.HandlerFunc {
 		req := request{}
 		// Try to decode the request body into the struct. If there is an error,
 		// respond to the client with the error message and a 400 status code.
-		err := s.decode(r, &req)
+		err := h.decode(r, &req)
 		if err != nil {
-			s.respondWithError(w, err.Error(), http.StatusBadRequest)
+			h.respondWithError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		err = s.svc.CreateStudent(r.Context(), services.CreateStudentParams{
+		err = h.svc.CreateStudent(r.Context(), services.CreateStudentParams{
 			Email: req.Email,
 			Name:  req.Name,
 		})
 		if err != nil {
-			s.respondWithError(w, err.Error(), http.StatusBadRequest)
+			h.respondWithError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		s.response(w, "", http.StatusNoContent)
+		h.response(w, "", http.StatusNoContent)
 	}
 }
 
-func (s *Service) CreateTeacher() http.HandlerFunc {
+// CreateTeacher handles "GET /api/teacher"
+// Adds a teacher.
+// ---
+// Responses:
+//
+//	200:
+//	400:
+//	401:
+func (h *Handler) CreateTeacher() http.HandlerFunc {
 	type request struct {
 		Email string `json:"email"`
 		Name  string `json:"name"`
@@ -202,21 +261,21 @@ func (s *Service) CreateTeacher() http.HandlerFunc {
 		req := request{}
 		// Try to decode the request body into the struct. If there is an error,
 		// respond to the client with the error message and a 400 status code.
-		err := s.decode(r, &req)
+		err := h.decode(r, &req)
 		if err != nil {
-			s.respondWithError(w, err.Error(), http.StatusBadRequest)
+			h.respondWithError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		err = s.svc.CreateTeacher(r.Context(), services.CreateTeacherParams{
+		err = h.svc.CreateTeacher(r.Context(), services.CreateTeacherParams{
 			Email: req.Email,
 			Name:  req.Name,
 		})
 		if err != nil {
-			s.respondWithError(w, err.Error(), http.StatusBadRequest)
+			h.respondWithError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		s.response(w, "", http.StatusNoContent)
+		h.response(w, "", http.StatusNoContent)
 	}
 }

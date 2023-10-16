@@ -1,0 +1,303 @@
+openapi: 3.0.3
+info:
+  title: Student Registration Service - OpenAPI 3.0
+  description: |-
+    Backend API that enables teachers to efficiently manage student data
+  termsOfService: http://swagger.io/terms/
+  contact:
+    email: apiteam@swagger.io
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.11
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
+servers:
+  - url: http://localhost:5005
+tags:
+  - name: auth
+    description: Operations about authentication
+    externalDocs:
+      description: Find out more
+      url: http://swagger.io
+  - name: api
+    description: Everything about your Students
+    externalDocs:
+      description: Find out more
+      url: http://swagger.io
+paths:
+  /auth:
+    post:
+      tags:
+        - auth
+      summary: Generate a new auth token
+      description: Generate a new auth token 
+      operationId: auth
+      requestBody:
+        description: Generate a new auth token in the response headers
+        content:
+          application/json:
+            schema:
+              $ref: ''
+        required: false
+      responses:
+        '204':
+          description: Successful operation
+          headers:
+            Token:
+              description: token to be used by the clients
+              schema:
+                type: string
+            Content-Type:
+              description: type of the response header
+              schema:
+                type: string
+  /api/commonstudents:
+    get:
+      tags:
+        - api
+      summary: Finds List of Common Students to a given list of teachers
+      description: Multiple email address values can be provided with teacher as variable name
+      operationId: commonstudents
+      parameters:
+        - name: teacher
+          in: query
+          description: Teacher values that need to be considered for filter
+          required: true
+          explode: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Students'          
+        '400':
+          description: invalid email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: invalid or expired tokens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '422':
+          description: missing required query params
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+      security:
+        - api_key: []
+  /api/retrievefornotifications:
+    post:
+      tags:
+        - api
+      summary: Retrieves list of students who can receive a given notification
+      description: ''
+      operationId: retrievefornotifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipients'
+        '400':
+          description: invalid email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'        
+        '401':
+          description: invalid or expired tokens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '422':
+          description: invalid data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+      security:
+        - api_key: []
+  /api/register:
+    post:
+      tags:
+        - api
+      summary: Register one or more students to a specified teacher
+      description: 'A teacher can register multiple students. A student can also be registered to multiple teachers.'
+      operationId: register
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Registration'
+      responses:
+        '204':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipients' 
+        '400':
+          description: invalid email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'     
+        '401':
+          description: invalid or expired tokens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '422':
+          description: invalid data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+      security:
+        - api_key: []
+  /api/suspend:
+    post:
+      tags:
+        - api
+      summary: Suspend a student
+      description: ''
+      operationId: suspend
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Student'
+      responses:
+        '204':
+          description: successful operation
+        '400':
+          description: invalid email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'      
+        '401':
+          description: invalid or expired tokens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '422':
+          description: invalid data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+      security:
+        - api_key: []    
+  /api/teachers:
+    post:
+      tags:
+        - api
+      summary: Create a teacher
+      description: ''
+      operationId: teachers
+      requestBody:
+        description: Created teacher object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Teacher'
+      responses:
+        '204':
+          description: successful operation
+  /api/students:
+    post:
+      tags:
+        - api
+      summary: Create a student
+      description: ''
+      operationId: students
+      requestBody:
+        description: Created student object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Student'
+      responses:
+        '204':
+          description: successful operation          
+components:
+  schemas:
+    Teacher:
+      type: object
+      properties:
+        email:
+          type: string
+          example: "teacher1@gmail.com"
+        name:
+          type: string
+          example: "Teacher"  
+    Student:
+      type: object
+      properties:
+        student:
+          type: string
+          example: "student1@gmail.com"
+    Students:
+      type: object
+      properties:
+        students:
+          type: array
+          items: 
+            type: string
+            example: "student1@gmail.com"
+    Notification:
+      type: object
+      properties:
+        teacher:
+          type: string
+        notification:
+          type: string
+    Registration:
+      type: object
+      properties:
+        teacher:
+          type: string
+          example: "teacher1@gmail.com"
+        students:
+          type: array
+          items: 
+            type: string
+          example: ["student1@gmail.com", "student2@gmail.com"]
+    Recipients:
+      type: object
+      properties:
+        recipients:
+          type: array
+          items: 
+            type: string
+          example: ["student1@gmail.com", "student2@gmail.com"]
+    ApiResponse:
+      type: object
+      properties:
+        message:
+          type: string
+  securitySchemes:
+    api_key:
+      type: apiKey
+      name: api_key
+      in: header

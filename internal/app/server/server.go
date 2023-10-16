@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/opentracing/opentracing-go"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 	"github.com/whittier16/student-reg-svc/internal/app/config"
@@ -11,6 +12,7 @@ import (
 	"github.com/whittier16/student-reg-svc/internal/pkg/database/db"
 	"github.com/whittier16/student-reg-svc/internal/pkg/handlers"
 	"github.com/whittier16/student-reg-svc/internal/pkg/logger"
+	"go.elastic.co/apm/module/apmgorilla"
 	"net/http"
 	"os"
 	"os/signal"
@@ -32,6 +34,7 @@ func New() (*Server, error) {
 		return nil, err
 	}
 
+	// creates a new instance of database
 	db, err := db.New(
 		cnf.Database.User,
 		cnf.Database.Pass,
@@ -43,6 +46,7 @@ func New() (*Server, error) {
 		return nil, err
 	}
 
+	// creates a new instance of redis
 	c := cache.NewRedis(cnf.Redis.Host, cnf.Redis.Port, cnf.Redis.Password, cnf.Redis.DB, cnf.Redis.UseTLS)
 
 	// creates a new instance of a logger
@@ -50,6 +54,8 @@ func New() (*Server, error) {
 
 	// creates a new instance of a mux router
 	router := mux.NewRouter().StrictSlash(true)
+	// instrument the application
+	apmgorilla.Instrument(router)
 	handlers.RegisterRoutes(router, log, db, c, cnf)
 
 	s := &Server{
@@ -62,9 +68,20 @@ func New() (*Server, error) {
 
 // Start starts the API server
 func (s *Server) Start(ctx context.Context) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "Start")
+	defer span.Finish()
+
+	// setup CORS
+	cors := cors.New(cors.Options{
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+		AllowedOrigins:   []string{"*"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "Cache-Control"},
+		AllowCredentials: true,
+	}).Handler(s.router)
+
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%d", s.cfg.Server.Address),
-		Handler: cors.Default().Handler(s.router),
+		Handler: cors,
 	}
 	stopServer := make(chan os.Signal, 1)
 	signal.Notify(stopServer, syscall.SIGINT, syscall.SIGTERM)
@@ -96,8 +113,4 @@ func (s *Server) Start(ctx context.Context) error {
 		s.logger.Info("server was shut down gracefully")
 	}
 	return nil
-}
-
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.router.ServeHTTP(w, r)
 }

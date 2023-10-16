@@ -7,51 +7,8 @@ import (
 	"time"
 )
 
-// responseWriter is a minimal wrapper for http.ResponseWriter that allows the
-// written HTTP status code to be captured for logging. This type will implement http.ResponseWriter.
-type responseWriter struct {
-	http.ResponseWriter
-	status      int
-	body        []byte
-	wroteHeader bool
-	wroteBody   bool
-}
-
-func wrapResponseWriter(w http.ResponseWriter) *responseWriter {
-	return &responseWriter{ResponseWriter: w}
-}
-
-func (rw *responseWriter) Status() int {
-	return rw.status
-}
-
-func (rw *responseWriter) WriteHeader(code int) {
-	if rw.wroteBody {
-		return
-	}
-	rw.status = code
-	rw.ResponseWriter.WriteHeader(code)
-	rw.wroteHeader = true
-}
-
-func (rw *responseWriter) Write(body []byte) (int, error) {
-	if rw.wroteBody {
-		return 0, nil
-	}
-	i, err := rw.ResponseWriter.Write(body)
-	if err != nil {
-		return 0, err
-	}
-	rw.body = body
-	return i, err
-}
-
-func (rw *responseWriter) Body() []byte {
-	return rw.body
-}
-
 // LoggerMiddleware logs the incoming HTTP request and response. Enable it only for debug purpose disable it on production.
-func (s *Service) LoggerMiddleware() func(http.Handler) http.Handler {
+func (h *Handler) LoggerMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/healthz" {
@@ -66,12 +23,12 @@ func (s *Service) LoggerMiddleware() func(http.Handler) http.Handler {
 				}
 			}()
 
-			requestBody, err := s.readRequestBody(r)
+			requestBody, err := h.readRequestBody(r)
 			if err != nil {
-				s.response(w, err, 0)
+				h.response(w, err, 0)
 				return
 			}
-			s.restoreRequestBody(r, requestBody)
+			h.restoreRequestBody(r, requestBody)
 
 			logMessage := fmt.Sprintf("path:%s, method: %s, requestBody: %v", r.URL.EscapedPath(), r.Method, string(requestBody))
 
@@ -80,14 +37,32 @@ func (s *Service) LoggerMiddleware() func(http.Handler) http.Handler {
 			next.ServeHTTP(wrapped, r)
 
 			logMessage = fmt.Sprintf("%s, responseStatus: %d, responseBody: %s", logMessage, wrapped.Status(), string(wrapped.Body()))
-			s.logger.Infof("%s, duration: %v", logMessage, time.Since(start))
+			h.logger.Infof("%s, duration: %v", logMessage, time.Since(start))
+		}
+		return http.HandlerFunc(fn)
+	}
+}
+
+// CORSMiddleware wraps the logic for collecting metrics
+func (h *Handler) CORSMiddleware() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
+			w.Header().Set("Access-Control-Allow-Headers", "Origin, Accept, Content-Type, Authorization, Cache-Control")
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+			next.ServeHTTP(w, r)
 		}
 		return http.HandlerFunc(fn)
 	}
 }
 
 // AuthMiddleware authorizes requests using valid JWT token from the header
-func (s *Service) AuthMiddleware() func(http.Handler) http.Handler {
+func (h *Handler) AuthMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/healthz" ||
@@ -98,22 +73,22 @@ func (s *Service) AuthMiddleware() func(http.Handler) http.Handler {
 			}
 
 			if r.Header["Token"] != nil {
-				requestBody, err := s.readRequestBody(r)
+				requestBody, err := h.readRequestBody(r)
 				if err != nil {
-					s.response(w, err, http.StatusInternalServerError)
+					h.response(w, err, http.StatusInternalServerError)
 					return
 				}
-				s.restoreRequestBody(r, requestBody)
+				h.restoreRequestBody(r, requestBody)
 
 				token, err := jwt.Parse(r.Header["Token"][0], func(token *jwt.Token) (interface{}, error) {
 					if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 						return nil, fmt.Errorf("there was an error")
 					}
-					return []byte(s.cfg.JWT.Secret), nil
+					return []byte(h.cfg.JWT.Secret), nil
 				})
 
 				if err != nil {
-					s.respondWithError(w, err.Error(), http.StatusInternalServerError)
+					h.respondWithError(w, err.Error(), http.StatusUnauthorized)
 				}
 
 				if token.Valid {
@@ -121,7 +96,7 @@ func (s *Service) AuthMiddleware() func(http.Handler) http.Handler {
 					next.ServeHTTP(wrapped, r)
 				}
 			} else {
-				s.respondWithError(w, "Not Authorized", http.StatusUnauthorized)
+				h.respondWithError(w, "Not Authorized", http.StatusUnauthorized)
 			}
 		}
 		return http.HandlerFunc(fn)
